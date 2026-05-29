@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Old CRT TV</title>
 
 <style>
@@ -11,22 +11,66 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: black;
-  font-family: "Courier New", monospace;
+  font-family: monospace;
 }
 
-/* ===== STATIC ===== */
-#staticCanvas {
+/* ===== MENU ===== */
+#menu {
   position: absolute;
-  width: 100%;
-  height: 100%;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #ccc;
+  z-index: 20;
+}
+
+#menu h1 {
+  font-size: 60px;
+  margin-bottom: 30px;
+  letter-spacing: 4px;
+}
+
+.menuText {
+  margin: 10px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.menuText:hover {
+  opacity: 1;
+}
+
+/* ===== CRT TV ===== */
+#crt {
+  position: fixed;
+  inset: 0;
+  display: none;
   z-index: 0;
 }
 
-#scanlines {
-  position: absolute;
+#video {
   width: 100%;
   height: 100%;
-  z-index: 1;
+  object-fit: cover;
+  filter: contrast(1.2) brightness(1.05) saturate(0.85);
+}
+
+/* overlays */
+#overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255,255,255,0.05), rgba(0,0,0,0.85));
+  mix-blend-mode: overlay;
+  opacity: 0.6;
+}
+
+#scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
   pointer-events: none;
   background: repeating-linear-gradient(
     to bottom,
@@ -37,7 +81,7 @@ html, body {
 }
 
 #flicker {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 2;
   pointer-events: none;
@@ -52,137 +96,38 @@ html, body {
   100% { opacity: 0.04; }
 }
 
-/* ===== MENU ===== */
-#menu {
-  position: absolute;
-  z-index: 5;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: #cfcfcf;
-  text-align: center;
-}
-
-#menu h1 {
-  font-size: 60px;
-  margin-bottom: 40px;
-  opacity: 0.85;
-  letter-spacing: 4px;
-}
-
-.menuText {
-  margin: 10px 0;
-  opacity: 0.7;
-  cursor: pointer;
-}
-.menuText:hover { opacity: 1; }
-
-/* ===== TV ===== */
-#tv {
-  position: absolute;
-  width: 90%;
-  height: 85%;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 3;
-  display: none;
-}
-
-#crt {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  overflow: hidden;
-  border-radius: 60px / 35px;
-  background: black;
-  box-shadow:
-    inset 0 0 140px rgba(0,0,0,0.95),
-    inset 0 0 40px rgba(255,255,255,0.05),
-    0 0 80px rgba(0,0,0,0.9);
-}
-
-#crt video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: contrast(1.2) brightness(1.1) saturate(0.85);
-}
-
-#overlay {
-  position: absolute;
+/* static */
+#staticCanvas {
+  position: fixed;
   inset: 0;
+  z-index: 1;
   pointer-events: none;
-  background:
-    repeating-linear-gradient(
-      to bottom,
-      rgba(255,255,255,0.03),
-      rgba(0,0,0,0.05) 2px
-    ),
-    radial-gradient(circle at center,
-      rgba(255,255,255,0.06),
-      rgba(0,0,0,0.8)
-    );
-  mix-blend-mode: overlay;
-  opacity: 0.6;
 }
 
-/* BW */
-.bw video {
-  filter: grayscale(100%) contrast(1.5);
-}
-
-/* rewind */
-.rewind {
-  animation: shake 0.15s infinite;
-}
-@keyframes shake {
-  0% { transform: translate(0,0); }
-  25% { transform: translate(-2px,1px); }
-  50% { transform: translate(2px,-1px); }
-  75% { transform: translate(-1px,-2px); }
-  100% { transform: translate(1px,2px); }
+/* B/W */
+body.bw video {
+  filter: grayscale(1) contrast(2) brightness(1.1) !important;
 }
 
 /* controls */
 #controls {
-  position: absolute;
-  bottom: 10%;
+  position: fixed;
+  bottom: 15px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 6;
+  z-index: 10;
   display: none;
 }
 
-#controls button {
+button {
   background: black;
   color: white;
   border: 1px solid white;
-  padding: 8px 14px;
-  margin: 6px;
+  padding: 8px 12px;
+  margin: 5px;
   cursor: pointer;
-  font-family: monospace;
 }
-#controls button:hover {
-  background: white;
-  color: black;
-}
-
-/* back button */
-#backBtn {
-  position: absolute;
-  top: 5%;
-  left: 5%;
-  z-index: 6;
-  display: none;
-  background: black;
-  color: white;
-  border: 1px solid white;
-  padding: 6px 12px;
-  cursor: pointer;
-  font-family: monospace;
-}
-#backBtn:hover {
+button:hover {
   background: white;
   color: black;
 }
@@ -191,50 +136,70 @@ html, body {
 
 <body>
 
-<canvas id="staticCanvas"></canvas>
-<div id="scanlines"></div>
-<div id="flicker"></div>
-
 <!-- MENU -->
 <div id="menu">
   <h1>OLD TV</h1>
 
   <div class="menuText" onclick="document.getElementById('fileInput').click()">
-    > SELECT VIDEO
+    SELECT VIDEO
   </div>
 
   <div class="menuText">
     <label>
-      <input type="checkbox" id="soundToggle">
-      OLD TV SOUND
+      <input type="checkbox" id="soundToggle"> OLD TV SOUND
     </label>
   </div>
 
-  <input type="file" id="fileInput" accept="video/*"
-    style="display:none" onchange="loadVideo(this.files)">
+  <input type="file" id="fileInput" accept="video/*" hidden>
 </div>
 
-<!-- TV -->
-<div id="tv">
-  <div id="crt">
-    <video id="video"></video>
-    <div id="overlay"></div>
-  </div>
+<!-- CRT -->
+<div id="crt">
+  <video id="video" autoplay></video>
 </div>
+
+<div id="overlay"></div>
+<div id="scanlines"></div>
+<div id="flicker"></div>
+<canvas id="staticCanvas"></canvas>
 
 <!-- CONTROLS -->
 <div id="controls">
-  <button onclick="toggleBW()">B/W</button>
-  <button onclick="rewind()">REWIND</button>
+  <button id="bwBtn">B/W</button>
+  <button id="rewindBtn">REWIND</button>
 </div>
-
-<!-- BACK -->
-<button id="backBtn" onclick="goBack()">BACK</button>
 
 <!-- SOUND -->
 <audio id="tvSound" loop src="old-tv-hum.mp3"></audio>
 
 <script>
+
+/* ===== ELEMENTS ===== */
+const menu = document.getElementById("menu");
+const crt = document.getElementById("crt");
+const video = document.getElementById("video");
+const fileInput = document.getElementById("fileInput");
+const controls = document.getElementById("controls");
+const audio = document.getElementById("tvSound");
+const soundToggle = document.getElementById("soundToggle");
+
+/* ===== LOAD VIDEO ===== */
+fileInput.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  const url = URL.createObjectURL(file);
+
+  video.src = url;
+
+  menu.style.display = "none";
+  crt.style.display = "block";
+  controls.style.display = "block";
+
+  video.play();
+
+  if(soundToggle.checked){
+    audio.play();
+  }
+});
 
 /* ===== STATIC ===== */
 const canvas = document.getElementById("staticCanvas");
@@ -254,7 +219,7 @@ function noise(){
   for(let i=0;i<d.length;i+=4){
     const v = Math.random()*255;
     d[i]=d[i+1]=d[i+2]=v;
-    d[i+3]=40;
+    d[i+3]=30;
   }
 
   ctx.putImageData(img,0,0);
@@ -262,74 +227,65 @@ function noise(){
 }
 noise();
 
-/* ===== LOGIC ===== */
-const video = document.getElementById("video");
-const menu = document.getElementById("menu");
-const tv = document.getElementById("tv");
-const controls = document.getElementById("controls");
-const backBtn = document.getElementById("backBtn");
-const soundToggle = document.getElementById("soundToggle");
-const tvSound = document.getElementById("tvSound");
+/* ===== B/W TOGGLE ===== */
+document.getElementById("bwBtn").onclick = () => {
+  document.body.classList.toggle("bw");
+};
 
-let bw = false;
+/* ===== REWIND (hold) ===== */
+let rewindInterval = null;
+const rewindBtn = document.getElementById("rewindBtn");
 
-/* LOAD VIDEO */
-function loadVideo(files){
-  const file = files[0];
-  const url = URL.createObjectURL(file);
-
-  video.src = url;
-
-  menu.style.display = "none";
-  tv.style.display = "block";
-  controls.style.display = "block";
-  backBtn.style.display = "block";
-
-  video.play();
-
-  if(soundToggle.checked){
-    tvSound.play();
-  }
-}
-
-/* BACK TO MENU */
-function goBack(){
+function startRewind() {
   video.pause();
-  video.currentTime = 0;
-
-  tvSound.pause();
-  tvSound.currentTime = 0;
-
-  tv.style.display = "none";
-  controls.style.display = "none";
-  backBtn.style.display = "none";
-  menu.style.display = "block";
-}
-
-/* BW */
-function toggleBW(){
-  bw = !bw;
-  document.body.classList.toggle("bw", bw);
-}
-
-/* REWIND */
-function rewind(){
-  document.body.classList.add("rewind");
-
-  let r = setInterval(()=>{
-    if(video.currentTime>0){
-      video.currentTime -= 0.3;
+  rewindInterval = setInterval(() => {
+    if (video.currentTime > 0.1) {
+      video.currentTime -= 0.15;
     } else {
-      clearInterval(r);
-      document.body.classList.remove("rewind");
+      video.currentTime = 0;
     }
-  },40);
-
-  setTimeout(()=>{
-    clearInterval(r);
-    document.body.classList.remove("rewind");
-  },3000);
+  }, 30);
 }
+
+function stopRewind() {
+  clearInterval(rewindInterval);
+  rewindInterval = null;
+  video.play();
+}
+
+rewindBtn.addEventListener("mousedown", startRewind);
+rewindBtn.addEventListener("mouseup", stopRewind);
+rewindBtn.addEventListener("mouseleave", stopRewind);
+rewindBtn.addEventListener("touchstart", startRewind);
+rewindBtn.addEventListener("touchend", stopRewind);
+
+/* ===== OLD TV SOUND ===== */
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+const ctxAudio = new AudioContext();
+const source = ctxAudio.createMediaElementSource(audio);
+
+const lowpass = ctxAudio.createBiquadFilter();
+lowpass.type = "lowpass";
+lowpass.frequency.value = 700;
+
+const distortion = ctxAudio.createWaveShaper();
+distortion.curve = (function(){
+  let n = 44100;
+  let curve = new Float32Array(n);
+  for(let i=0;i<n;i++){
+    let x = (i*2)/n - 1;
+    curve[i] = Math.tanh(x * 10);
+  }
+  return curve;
+})();
+
+source.connect(lowpass).connect(distortion).connect(ctxAudio.destination);
+
+/* unlock audio */
+document.addEventListener("click", () => {
+  if(ctxAudio.state === "suspended") ctxAudio.resume();
+  audio.play();
+}, { once: true });
 
 </script>
 

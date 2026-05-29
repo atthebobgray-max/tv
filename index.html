@@ -23,13 +23,12 @@ html, body {
   justify-content: center;
   align-items: center;
   color: #ccc;
-  z-index: 20;
+  z-index: 50;
 }
 
 #menu h1 {
   font-size: 60px;
   margin-bottom: 30px;
-  letter-spacing: 4px;
 }
 
 .menuText {
@@ -37,11 +36,9 @@ html, body {
   cursor: pointer;
   opacity: 0.7;
 }
-.menuText:hover {
-  opacity: 1;
-}
+.menuText:hover { opacity: 1; }
 
-/* ===== CRT TV ===== */
+/* ===== CRT FULLSCREEN ===== */
 #crt {
   position: fixed;
   inset: 0;
@@ -56,7 +53,7 @@ html, body {
   filter: contrast(1.2) brightness(1.05) saturate(0.85);
 }
 
-/* overlays */
+/* CRT EFFECTS */
 #overlay {
   position: fixed;
   inset: 0;
@@ -96,7 +93,7 @@ html, body {
   100% { opacity: 0.04; }
 }
 
-/* static */
+/* STATIC */
 #staticCanvas {
   position: fixed;
   inset: 0;
@@ -104,12 +101,12 @@ html, body {
   pointer-events: none;
 }
 
-/* B/W */
-body.bw video {
+/* B/W MODE */
+video.bw {
   filter: grayscale(1) contrast(2) brightness(1.1) !important;
 }
 
-/* controls */
+/* CONTROLS */
 #controls {
   position: fixed;
   bottom: 15px;
@@ -130,6 +127,22 @@ button {
 button:hover {
   background: white;
   color: black;
+}
+
+/* ===== PAUSE SCREEN ===== */
+#pauseScreen {
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 30;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  font-size: 40px;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  backdrop-filter: blur(2px);
 }
 </style>
 </head>
@@ -155,13 +168,16 @@ button:hover {
 
 <!-- CRT -->
 <div id="crt">
-  <video id="video" autoplay></video>
+  <video id="video"></video>
 </div>
 
 <div id="overlay"></div>
 <div id="scanlines"></div>
 <div id="flicker"></div>
 <canvas id="staticCanvas"></canvas>
+
+<!-- PAUSE SCREEN -->
+<div id="pauseScreen">PAUSED<br><small>CLICK TO RESUME</small></div>
 
 <!-- CONTROLS -->
 <div id="controls">
@@ -173,13 +189,14 @@ button:hover {
 <audio id="tvSound" loop src="old-tv-hum.mp3"></audio>
 
 <script>
-
 /* ===== ELEMENTS ===== */
 const menu = document.getElementById("menu");
 const crt = document.getElementById("crt");
 const video = document.getElementById("video");
 const fileInput = document.getElementById("fileInput");
 const controls = document.getElementById("controls");
+const pauseScreen = document.getElementById("pauseScreen");
+
 const audio = document.getElementById("tvSound");
 const soundToggle = document.getElementById("soundToggle");
 
@@ -215,22 +232,38 @@ resize();
 function noise(){
   const img = ctx.createImageData(canvas.width, canvas.height);
   const d = img.data;
-
   for(let i=0;i<d.length;i+=4){
     const v = Math.random()*255;
     d[i]=d[i+1]=d[i+2]=v;
     d[i+3]=30;
   }
-
   ctx.putImageData(img,0,0);
   requestAnimationFrame(noise);
 }
 noise();
 
-/* ===== B/W TOGGLE ===== */
-document.getElementById("bwBtn").onclick = () => {
-  document.body.classList.toggle("bw");
-};
+/* ===== B/W ===== */
+const bwBtn = document.getElementById("bwBtn");
+bwBtn.addEventListener("click", () => {
+  video.classList.toggle("bw");
+});
+
+/* ===== PAUSE SYSTEM ===== */
+video.addEventListener("pause", () => {
+  pauseScreen.style.display = "flex";
+});
+
+video.addEventListener("play", () => {
+  pauseScreen.style.display = "none";
+});
+
+pauseScreen.addEventListener("click", () => {
+  video.play();
+});
+
+video.addEventListener("click", () => {
+  video.pause();
+});
 
 /* ===== REWIND (hold) ===== */
 let rewindInterval = null;
@@ -239,11 +272,8 @@ const rewindBtn = document.getElementById("rewindBtn");
 function startRewind() {
   video.pause();
   rewindInterval = setInterval(() => {
-    if (video.currentTime > 0.1) {
-      video.currentTime -= 0.15;
-    } else {
-      video.currentTime = 0;
-    }
+    if (video.currentTime > 0.1) video.currentTime -= 0.15;
+    else video.currentTime = 0;
   }, 30);
 }
 
@@ -256,8 +286,6 @@ function stopRewind() {
 rewindBtn.addEventListener("mousedown", startRewind);
 rewindBtn.addEventListener("mouseup", stopRewind);
 rewindBtn.addEventListener("mouseleave", stopRewind);
-rewindBtn.addEventListener("touchstart", startRewind);
-rewindBtn.addEventListener("touchend", stopRewind);
 
 /* ===== OLD TV SOUND ===== */
 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -286,7 +314,6 @@ document.addEventListener("click", () => {
   if(ctxAudio.state === "suspended") ctxAudio.resume();
   audio.play();
 }, { once: true });
-
 </script>
 
 </body>

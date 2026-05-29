@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Old CRT TV</title>
+
+<style>
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: black;
+  font-family: "Courier New", monospace;
+}
+
+/* ===== STATIC ===== */
+#staticCanvas {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+#scanlines {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.04),
+    rgba(0,0,0,0.04) 2px
+  );
+  opacity: 0.6;
+}
+
+#flicker {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: black;
+  opacity: 0.05;
+  animation: flick 0.12s infinite;
+}
+
+@keyframes flick {
+  0% { opacity: 0.03; }
+  50% { opacity: 0.07; }
+  100% { opacity: 0.04; }
+}
+
+/* ===== MENU ===== */
+#menu {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #cfcfcf;
+  text-align: center;
+}
+
+#menu h1 {
+  font-size: 60px;
+  margin-bottom: 40px;
+  opacity: 0.85;
+  letter-spacing: 4px;
+}
+
+.menuText {
+  margin: 10px 0;
+  opacity: 0.7;
+  cursor: pointer;
+}
+.menuText:hover { opacity: 1; }
+
+/* ===== TV ===== */
+#tv {
+  position: absolute;
+  width: 90%;
+  height: 85%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  display: none;
+}
+
+#crt {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: 60px / 35px;
+  background: black;
+  box-shadow:
+    inset 0 0 140px rgba(0,0,0,0.95),
+    inset 0 0 40px rgba(255,255,255,0.05),
+    0 0 80px rgba(0,0,0,0.9);
+}
+
+#crt video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: contrast(1.2) brightness(1.1) saturate(0.85);
+}
+
+#overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.03),
+      rgba(0,0,0,0.05) 2px
+    ),
+    radial-gradient(circle at center,
+      rgba(255,255,255,0.06),
+      rgba(0,0,0,0.8)
+    );
+  mix-blend-mode: overlay;
+  opacity: 0.6;
+}
+
+/* BW */
+.bw video {
+  filter: grayscale(100%) contrast(1.5);
+}
+
+/* rewind */
+.rewind {
+  animation: shake 0.15s infinite;
+}
+@keyframes shake {
+  0% { transform: translate(0,0); }
+  25% { transform: translate(-2px,1px); }
+  50% { transform: translate(2px,-1px); }
+  75% { transform: translate(-1px,-2px); }
+  100% { transform: translate(1px,2px); }
+}
+
+/* controls */
+#controls {
+  position: absolute;
+  bottom: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: none;
+}
+
+#controls button {
+  background: black;
+  color: white;
+  border: 1px solid white;
+  padding: 8px 14px;
+  margin: 6px;
+  cursor: pointer;
+  font-family: monospace;
+}
+#controls button:hover {
+  background: white;
+  color: black;
+}
+
+/* back button */
+#backBtn {
+  position: absolute;
+  top: 5%;
+  left: 5%;
+  z-index: 6;
+  display: none;
+  background: black;
+  color: white;
+  border: 1px solid white;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: monospace;
+}
+#backBtn:hover {
+  background: white;
+  color: black;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="staticCanvas"></canvas>
+<div id="scanlines"></div>
+<div id="flicker"></div>
+
+<!-- MENU -->
+<div id="menu">
+  <h1>OLD TV</h1>
+
+  <div class="menuText" onclick="document.getElementById('fileInput').click()">
+    > SELECT VIDEO
+  </div>
+
+  <div class="menuText">
+    <label>
+      <input type="checkbox" id="soundToggle">
+      OLD TV SOUND
+    </label>
+  </div>
+
+  <input type="file" id="fileInput" accept="video/*"
+    style="display:none" onchange="loadVideo(this.files)">
+</div>
+
+<!-- TV -->
+<div id="tv">
+  <div id="crt">
+    <video id="video"></video>
+    <div id="overlay"></div>
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<div id="controls">
+  <button onclick="toggleBW()">B/W</button>
+  <button onclick="rewind()">REWIND</button>
+</div>
+
+<!-- BACK -->
+<button id="backBtn" onclick="goBack()">BACK</button>
+
+<!-- SOUND -->
+<audio id="tvSound" loop src="old-tv-hum.mp3"></audio>
+
+<script>
+
+/* ===== STATIC ===== */
+const canvas = document.getElementById("staticCanvas");
+const ctx = canvas.getContext("2d");
+
+function resize(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+resize();
+
+function noise(){
+  const img = ctx.createImageData(canvas.width, canvas.height);
+  const d = img.data;
+
+  for(let i=0;i<d.length;i+=4){
+    const v = Math.random()*255;
+    d[i]=d[i+1]=d[i+2]=v;
+    d[i+3]=40;
+  }
+
+  ctx.putImageData(img,0,0);
+  requestAnimationFrame(noise);
+}
+noise();
+
+/* ===== LOGIC ===== */
+const video = document.getElementById("video");
+const menu = document.getElementById("menu");
+const tv = document.getElementById("tv");
+const controls = document.getElementById("controls");
+const backBtn = document.getElementById("backBtn");
+const soundToggle = document.getElementById("soundToggle");
+const tvSound = document.getElementById("tvSound");
+
+let bw = false;
+
+/* LOAD VIDEO */
+function loadVideo(files){
+  const file = files[0];
+  const url = URL.createObjectURL(file);
+
+  video.src = url;
+
+  menu.style.display = "none";
+  tv.style.display = "block";
+  controls.style.display = "block";
+  backBtn.style.display = "block";
+
+  video.play();
+
+  if(soundToggle.checked){
+    tvSound.play();
+  }
+}
+
+/* BACK TO MENU */
+function goBack(){
+  video.pause();
+  video.currentTime = 0;
+
+  tvSound.pause();
+  tvSound.currentTime = 0;
+
+  tv.style.display = "none";
+  controls.style.display = "none";
+  backBtn.style.display = "none";
+  menu.style.display = "block";
+}
+
+/* BW */
+function toggleBW(){
+  bw = !bw;
+  document.body.classList.toggle("bw", bw);
+}
+
+/* REWIND */
+function rewind(){
+  document.body.classList.add("rewind");
+
+  let r = setInterval(()=>{
+    if(video.currentTime>0){
+      video.currentTime -= 0.3;
+    } else {
+      clearInterval(r);
+      document.body.classList.remove("rewind");
+    }
+  },40);
+
+  setTimeout(()=>{
+    clearInterval(r);
+    document.body.classList.remove("rewind");
+  },3000);
+}
+
+</script>
+
+</body>
+</html>

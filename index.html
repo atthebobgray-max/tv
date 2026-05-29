@@ -38,7 +38,7 @@ html, body {
 }
 .menuText:hover { opacity: 1; }
 
-/* ===== CRT FULLSCREEN ===== */
+/* ===== CRT ===== */
 #crt {
   position: fixed;
   inset: 0;
@@ -53,22 +53,22 @@ html, body {
   filter: contrast(1.2) brightness(1.05) saturate(0.85);
 }
 
-/* CRT EFFECTS */
-#overlay {
+/* CRT effects */
+#overlay, #scanlines, #flicker {
   position: fixed;
   inset: 0;
-  z-index: 3;
   pointer-events: none;
+}
+
+#overlay {
+  z-index: 3;
   background: radial-gradient(circle, rgba(255,255,255,0.05), rgba(0,0,0,0.85));
   mix-blend-mode: overlay;
   opacity: 0.6;
 }
 
 #scanlines {
-  position: fixed;
-  inset: 0;
   z-index: 2;
-  pointer-events: none;
   background: repeating-linear-gradient(
     to bottom,
     rgba(255,255,255,0.04),
@@ -78,10 +78,7 @@ html, body {
 }
 
 #flicker {
-  position: fixed;
-  inset: 0;
   z-index: 2;
-  pointer-events: none;
   background: black;
   opacity: 0.05;
   animation: flick 0.12s infinite;
@@ -101,8 +98,8 @@ html, body {
   pointer-events: none;
 }
 
-/* B/W MODE */
-video.bw {
+/* ===== BLACK & WHITE ===== */
+body.bw video {
   filter: grayscale(1) contrast(2) brightness(1.1) !important;
 }
 
@@ -129,7 +126,7 @@ button:hover {
   color: black;
 }
 
-/* ===== PAUSE SCREEN ===== */
+/* PAUSE */
 #pauseScreen {
   position: fixed;
   inset: 0;
@@ -142,7 +139,6 @@ button:hover {
   align-items: center;
   text-align: center;
   cursor: pointer;
-  backdrop-filter: blur(2px);
 }
 </style>
 </head>
@@ -155,6 +151,13 @@ button:hover {
 
   <div class="menuText" onclick="document.getElementById('fileInput').click()">
     SELECT VIDEO
+  </div>
+
+  <!-- B/W IN MENU -->
+  <div class="menuText">
+    <label>
+      <input type="checkbox" id="bwToggle"> BLACK & WHITE
+    </label>
   </div>
 
   <div class="menuText">
@@ -176,31 +179,26 @@ button:hover {
 <div id="flicker"></div>
 <canvas id="staticCanvas"></canvas>
 
-<!-- PAUSE SCREEN -->
+<!-- PAUSE -->
 <div id="pauseScreen">PAUSED<br><small>CLICK TO RESUME</small></div>
-
-<!-- CONTROLS -->
-<div id="controls">
-  <button id="bwBtn">B/W</button>
-  <button id="rewindBtn">REWIND</button>
-</div>
 
 <!-- SOUND -->
 <audio id="tvSound" loop src="old-tv-hum.mp3"></audio>
 
 <script>
-/* ===== ELEMENTS ===== */
+
 const menu = document.getElementById("menu");
 const crt = document.getElementById("crt");
 const video = document.getElementById("video");
 const fileInput = document.getElementById("fileInput");
-const controls = document.getElementById("controls");
-const pauseScreen = document.getElementById("pauseScreen");
 
-const audio = document.getElementById("tvSound");
+const bwToggle = document.getElementById("bwToggle");
 const soundToggle = document.getElementById("soundToggle");
 
-/* ===== LOAD VIDEO ===== */
+const pauseScreen = document.getElementById("pauseScreen");
+const audio = document.getElementById("tvSound");
+
+/* LOAD VIDEO */
 fileInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
   const url = URL.createObjectURL(file);
@@ -209,46 +207,28 @@ fileInput.addEventListener("change", (e) => {
 
   menu.style.display = "none";
   crt.style.display = "block";
-  controls.style.display = "block";
 
   video.play();
 
   if(soundToggle.checked){
     audio.play();
   }
+
+  applyBW(); // IMPORTANT: keep setting
 });
 
-/* ===== STATIC ===== */
-const canvas = document.getElementById("staticCanvas");
-const ctx = canvas.getContext("2d");
-
-function resize(){
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-window.addEventListener("resize", resize);
-resize();
-
-function noise(){
-  const img = ctx.createImageData(canvas.width, canvas.height);
-  const d = img.data;
-  for(let i=0;i<d.length;i+=4){
-    const v = Math.random()*255;
-    d[i]=d[i+1]=d[i+2]=v;
-    d[i+3]=30;
+/* APPLY B/W */
+function applyBW() {
+  if (bwToggle.checked) {
+    document.body.classList.add("bw");
+  } else {
+    document.body.classList.remove("bw");
   }
-  ctx.putImageData(img,0,0);
-  requestAnimationFrame(noise);
 }
-noise();
 
-/* ===== B/W ===== */
-const bwBtn = document.getElementById("bwBtn");
-bwBtn.addEventListener("click", () => {
-  video.classList.toggle("bw");
-});
+bwToggle.addEventListener("change", applyBW);
 
-/* ===== PAUSE SYSTEM ===== */
+/* PAUSE / RESUME */
 video.addEventListener("pause", () => {
   pauseScreen.style.display = "flex";
 });
@@ -265,55 +245,32 @@ video.addEventListener("click", () => {
   video.pause();
 });
 
-/* ===== REWIND (hold) ===== */
-let rewindInterval = null;
-const rewindBtn = document.getElementById("rewindBtn");
+/* STATIC */
+const canvas = document.getElementById("staticCanvas");
+const ctx = canvas.getContext("2d");
 
-function startRewind() {
-  video.pause();
-  rewindInterval = setInterval(() => {
-    if (video.currentTime > 0.1) video.currentTime -= 0.15;
-    else video.currentTime = 0;
-  }, 30);
+function resize(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 }
+window.addEventListener("resize", resize);
+resize();
 
-function stopRewind() {
-  clearInterval(rewindInterval);
-  rewindInterval = null;
-  video.play();
-}
+function noise(){
+  const img = ctx.createImageData(canvas.width, canvas.height);
+  const d = img.data;
 
-rewindBtn.addEventListener("mousedown", startRewind);
-rewindBtn.addEventListener("mouseup", stopRewind);
-rewindBtn.addEventListener("mouseleave", stopRewind);
-
-/* ===== OLD TV SOUND ===== */
-const AudioContext = window.AudioContext || window.webkitAudioContext;
-const ctxAudio = new AudioContext();
-const source = ctxAudio.createMediaElementSource(audio);
-
-const lowpass = ctxAudio.createBiquadFilter();
-lowpass.type = "lowpass";
-lowpass.frequency.value = 700;
-
-const distortion = ctxAudio.createWaveShaper();
-distortion.curve = (function(){
-  let n = 44100;
-  let curve = new Float32Array(n);
-  for(let i=0;i<n;i++){
-    let x = (i*2)/n - 1;
-    curve[i] = Math.tanh(x * 10);
+  for(let i=0;i<d.length;i+=4){
+    const v = Math.random()*255;
+    d[i]=d[i+1]=d[i+2]=v;
+    d[i+3]=25;
   }
-  return curve;
-})();
 
-source.connect(lowpass).connect(distortion).connect(ctxAudio.destination);
+  ctx.putImageData(img,0,0);
+  requestAnimationFrame(noise);
+}
+noise();
 
-/* unlock audio */
-document.addEventListener("click", () => {
-  if(ctxAudio.state === "suspended") ctxAudio.resume();
-  audio.play();
-}, { once: true });
 </script>
 
 </body>
